@@ -4,12 +4,15 @@ from models.basemodel import User
 
 app = FastAPI()
 
-user1 = User(
-    name='John Doe',
-    id=1
-)
+
+@app.post('/user')
+def user(request: User):
+    return {
+        'name': request.name,
+        'age': request.age,
+        'is_adult': is_adult(request.age)
+    }
 
 
-@app.get('/users')
-def read_root():
-    return user1
+def is_adult(age: int):
+    return age >= 18
