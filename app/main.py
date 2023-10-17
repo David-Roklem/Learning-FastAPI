@@ -1,18 +1,15 @@
 from fastapi import FastAPI
 
-from models.basemodel import User
+# from models.basemodel import User
 
 app = FastAPI()
 
-
-@app.post('/user')
-def user(request: User):
-    return {
-        'name': request.name,
-        'age': request.age,
-        'is_adult': is_adult(request.age)
-    }
+fake_users = {
+    1: {"username": "john_doe", "email": "john@example.com"},
+    2: {"username": "jane_smith", "email": "jane@example.com"},
+}
 
 
-def is_adult(age: int):
-    return age >= 18
+@app.get("/users/{user_id}")
+def read_user(user_id: int):
+    return fake_users.get(user_id, {"error": "User not found"})
