@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, PositiveInt
+from pydantic import BaseModel, EmailStr, PositiveInt, PositiveFloat
 
 
 class UserCreate(BaseModel):
@@ -11,3 +11,10 @@ class UserCreate(BaseModel):
 class Feedback(BaseModel):
     name: str
     message: str
+
+
+class Product(BaseModel):
+    product_id: int
+    name: str
+    category: str
+    price: PositiveFloat

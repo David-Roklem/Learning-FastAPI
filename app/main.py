@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
-from models.basemodel import UserCreate, Feedback
+from models.basemodel import Product, UserCreate, Feedback
+from db.data import sample_products
 
 app = FastAPI()
 
@@ -41,3 +42,30 @@ def create_user(user: UserCreate):
     )
     print(fake_users)
     return fake_users.get(user_id, 'User not found')
+
+
+@app.get('/product/{product_id}')
+def get_product(product_id: int):
+    for product in sample_products:
+        if product['product_id'] == product_id:
+            return product
+    return {'error_message': 'product_not_found'}
+
+
+@app.get('/products/search')
+def find_products(keyword: str, category: str = None, limit: int = 10):
+    if category:
+        res = list(
+            filter(
+                lambda product: keyword.lower() in product['name'].lower()
+                and category == product['category'], sample_products
+            )
+        )
+    else:
+        res = list(
+            filter(
+                lambda product: keyword.lower() in product['name'].lower(),
+                sample_products
+            )
+        )
+    return res[:limit]
