@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+# Быстрый старт в FastAPI Python
+from typing import Annotated, Optional
+from fastapi import Cookie, FastAPI, HTTPException, Header, Response
 
-from models.basemodel import Product, UserCreate, Feedback
+from models.basemodel import User, Product, UserCreate, Feedback
 from db.data import sample_products
 
 app = FastAPI()
@@ -44,6 +46,7 @@ def create_user(user: UserCreate):
     return fake_users.get(user_id, 'User not found')
 
 
+# 3.1
 @app.get('/product/{product_id}')
 def get_product(product_id: int):
     for product in sample_products:
@@ -69,3 +72,58 @@ def find_products(keyword: str, category: str = None, limit: int = 10):
             )
         )
     return res[:limit]
+
+
+# Для # 3.2. Задача на программирование
+cookie_users = [
+    {'username': 'user123', 'password': 'password123'}
+]
+
+sessions: dict = {}  # session db for storing cookie data
+
+
+# 3.2. Задача на программирование
+@app.post('/login')
+def login_user(user: User, response: Response):
+    for cookie_user in cookie_users:
+        if user.username == cookie_user.get('username')\
+                and user.password == cookie_user.get('password'):
+            session_token = 'some unique token'
+            sessions[session_token] = user
+            response.set_cookie(
+                key='session_token',
+                value=session_token,
+                httponly=True
+            )
+            return {'message': 'cookies has been cooked :)'}
+    return {'message': 'no such user'}
+
+
+@app.get("/user")
+def root(session_token: Optional[str] = Cookie(None)):
+    user: User = sessions.get(session_token)
+    if user:
+        return user.model_dump()
+    return {'message': 'Unauthorized'}
+
+
+@app.get("/del_cookie")
+def del_cookie(
+    response: Response, session_token: Optional[str] = Cookie(None)
+):
+    user: User = sessions.get(session_token)
+    if user:
+        response.delete_cookie(key='session_token')
+        return {'message': 'Deleted cookies'}
+    return {'message': 'Unauthorized'}
+
+
+# 3.3. Задача на программирование
+@app.get('/headers')
+def get_headers(
+    user_agent: Annotated[str | None, Header()] = None,
+    accept_language: Annotated[str | None, Header()] = None
+):
+    if not user_agent or not accept_language:
+        raise HTTPException(detail='no headers', status_code=400)
+    return {'User-Agent': user_agent, 'Accept-Language': accept_language}

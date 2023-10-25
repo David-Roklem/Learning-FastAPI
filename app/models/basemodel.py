@@ -18,3 +18,8 @@ class Product(BaseModel):
     name: str
     category: str
     price: PositiveFloat
+
+
+class User(BaseModel):
+    username: str
+    password: str
