@@ -1,11 +1,16 @@
 # Быстрый старт в FastAPI Python
+import secrets
 from typing import Annotated, Optional
-from fastapi import Cookie, FastAPI, HTTPException, Header, Response
+from fastapi import (
+    Cookie, FastAPI, HTTPException, Header, Response, Depends, status
+)
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from models.basemodel import User, Product, UserCreate, Feedback
 from db.data import sample_products
 
 app = FastAPI()
+security = HTTPBasic()
 
 fake_users = {
     1: {'username': 'john_doe', 'email': 'john@example.com'},
@@ -127,3 +132,31 @@ def get_headers(
     if not user_agent or not accept_language:
         raise HTTPException(detail='no headers', status_code=400)
     return {'User-Agent': user_agent, 'Accept-Language': accept_language}
+
+
+# 4.1. Задача на программирование
+def authenticate_user(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)]
+):
+    current_username = credentials.username
+    correct_username = 'stanleyjobson'
+    is_correct_username = secrets.compare_digest(
+        current_username, correct_username
+    )
+    current_password = credentials.password
+    correct_password = 'swordfish'
+    is_correct_password = secrets.compare_digest(
+        current_password, correct_password
+    )
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Incorrect email or password',
+
+        )
+    return credentials.username
+
+
+@app.get('/login')
+def read_current_user(username: Annotated[str, Depends(authenticate_user)]):
+    return {'username': username}
