@@ -9,6 +9,7 @@ packages = [{include = "learning_fastapi"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = {extras = ["all"], version = "^0.103.2"}
+pyjwt = "^2.8.0"
 
 
 [build-system]

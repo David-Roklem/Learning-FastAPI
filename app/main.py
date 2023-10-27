@@ -1,10 +1,13 @@
 # Быстрый старт в FastAPI Python
+import random
 import secrets
 from typing import Annotated, Optional
 from fastapi import (
     Cookie, FastAPI, HTTPException, Header, Response, Depends, status
 )
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+
+import jwt
 
 from models.basemodel import User, Product, UserCreate, Feedback
 from db.data import sample_products
@@ -87,21 +90,21 @@ cookie_users = [
 sessions: dict = {}  # session db for storing cookie data
 
 
-# 3.2. Задача на программирование
-@app.post('/login')
-def login_user(user: User, response: Response):
-    for cookie_user in cookie_users:
-        if user.username == cookie_user.get('username')\
-                and user.password == cookie_user.get('password'):
-            session_token = 'some unique token'
-            sessions[session_token] = user
-            response.set_cookie(
-                key='session_token',
-                value=session_token,
-                httponly=True
-            )
-            return {'message': 'cookies has been cooked :)'}
-    return {'message': 'no such user'}
+# # 3.2. Задача на программирование
+# @app.post('/login')
+# def login_user(user: User, response: Response):
+#     for cookie_user in cookie_users:
+#         if user.username == cookie_user.get('username')\
+#                 and user.password == cookie_user.get('password'):
+#             session_token = 'some unique token'
+#             sessions[session_token] = user
+#             response.set_cookie(
+#                 key='session_token',
+#                 value=session_token,
+#                 httponly=True
+#             )
+#             return {'message': 'cookies has been cooked :)'}
+#     return {'message': 'no such user'}
 
 
 @app.get("/user")
@@ -160,3 +163,47 @@ def authenticate_user(
 @app.get('/login')
 def read_current_user(username: Annotated[str, Depends(authenticate_user)]):
     return {'username': username}
+
+
+# 4.2 Задача на программирование повышенной сложности
+SECRET_KEY = '6074f205fde91252b3452b94045140356ae3a7e6e593c79062545554f6f6b26'
+ALGORITHM = 'HS256'
+
+USERS_DATA = [
+    {'username': 'admin', 'password': 'adminpass'}
+]
+
+
+def create_jwt_token(data: dict):
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
+
+@app.post('/login')
+def is_authenticated(payload: dict):
+    for user_data in USERS_DATA:
+        if user_data.get('username') == payload['username']\
+                and user_data.get('password') == payload['password']:
+            return {
+                'access_token': create_jwt_token(
+                    {'sub': user_data['username']}
+                )
+            }
+    return {'error': 'Invalid credentials'}
+
+
+@app.get('/protected_resource')
+def get_protected_res(authorization: Annotated[str | None, Header()] = None):
+    if not authorization:
+        raise HTTPException(
+            detail='no Authorization header provided', status_code=400
+        )
+    try:
+        decoded_token = jwt.decode(
+            authorization, SECRET_KEY, algorithms=[ALGORITHM]
+        )
+    except jwt.InvalidTokenError:
+        return {'error message': 'invalid credentials'}
+    for user_data in USERS_DATA:
+        if decoded_token['sub'] == user_data['username']:
+            return {'message': 'access granted'}
+    return {'error message': 'invalid credentials'}
